@@ -1,5 +1,7 @@
-
 # LSFive Tablet - Une Ressource de Tablette Moderne pour FiveM
+
+[![Visitors Badge](https://api.visitorbadge.io/api/VisitorHit?user=Krigsexe&repo=lsfive-tablet&countColor=%237B1E7A)](https://github.com/Krigsexe/lsfive-tablet)
+
 ![Tablet Mockup](https://www.proxitek.fr/wp-content/uploads/2025/08/fivem-tablet.png)
 
 LSFive Tablet est une ressource de tablette moderne, riche en fonctionnalités et optimisée pour la performance sur FiveM, construite avec React et TypeScript. Conçue pour une utilisation en véhicule par les services d'urgence et autres métiers, elle est prête à l'emploi tout en offrant des possibilités de personnalisation approfondies pour n'importe quel framework (ESX, QBCore, ou standalone).
