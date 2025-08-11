@@ -1,0 +1,8 @@
+{
+  "name": "LSFive - Krigs Tabs",
+  "description": "Tablette FiveM",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}
