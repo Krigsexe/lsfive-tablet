@@ -65,3 +65,18 @@ Vous devrez également implémenter la logique pour les transferts bancaires, la
 ---
 
 *Cette tablette a été développée par Krigs et améliorée pour une intégration plug-and-play par Gemini AI.*
+
+---
+
+**⭐ Stars, 🍴 Forks & 🤝 Contributions Welcome!**
+
+![Profile Views](https://komarev.com/ghpvc/?username=Krigsexe&color=blueviolet&style=for-the-badge)
+![GitHub Stars](https://img.shields.io/github/stars/Krigsexe?style=for-the-badge&logo=github)
+
+</div>
+
+---
+
+<div align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=100&section=footer&text=Thank%20you%20for%20visiting!&fontSize=16&fontAlignY=65&desc=Merci%20pour%20votre%20visite!&descAlignY=80&descAlign=62"/>
+</div>
