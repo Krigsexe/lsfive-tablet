@@ -2,6 +2,8 @@
 
 [![Visitors Badge](https://api.visitorbadge.io/api/VisitorHit?user=Krigsexe&repo=lsfive-tablet&countColor=%237B1E7A)](https://github.com/Krigsexe/lsfive-tablet)
 
+[DEMO](https://lsfive-krigs-tabs-550776260716.us-west1.run.app)
+
 ![Tablet Mockup](https://www.proxitek.fr/wp-content/uploads/2025/08/fivem-tablet.png)
 
 # LSFive Tablet - Guide d'Installation Complet
