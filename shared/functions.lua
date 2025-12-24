@@ -1,6 +1,11 @@
 --[[
+    ============================================================
     LSFIVE TABLET - SHARED FUNCTIONS
-    Fonctions utilitaires partagées client/serveur
+    ============================================================
+    Version: 2.0.0
+    Fonctions utilitaires partagees client/serveur
+    Compatible: ESX, QBCore, Standalone
+    ============================================================
 ]]
 
 LSFiveTablet = LSFiveTablet or {}
@@ -8,9 +13,12 @@ LSFiveTablet = LSFiveTablet or {}
 -- Framework detection cache
 LSFiveTablet.Framework = nil
 LSFiveTablet.FrameworkObject = nil
+LSFiveTablet.PhoneResourceAvailable = nil
 
 --[[
+    ============================================================
     FRAMEWORK DETECTION
+    ============================================================
 ]]
 function LSFiveTablet.DetectFramework()
     if LSFiveTablet.Framework then
@@ -22,7 +30,7 @@ function LSFiveTablet.DetectFramework()
         return LSFiveTablet.Framework
     end
 
-    -- Auto-detect
+    -- Auto-detect in order of priority
     if GetResourceState('es_extended') == 'started' then
         LSFiveTablet.Framework = 'esx'
     elseif GetResourceState('qb-core') == 'started' then
@@ -31,10 +39,7 @@ function LSFiveTablet.DetectFramework()
         LSFiveTablet.Framework = 'standalone'
     end
 
-    if Config.Debug then
-        print('[LSFive-Tablet] Framework detected: ' .. LSFiveTablet.Framework)
-    end
-
+    LSFiveTablet.Debug('Framework detected: ' .. LSFiveTablet.Framework)
     return LSFiveTablet.Framework
 end
 
@@ -58,7 +63,83 @@ function LSFiveTablet.GetFramework()
 end
 
 --[[
-    JOB GROUP CHECK
+    ============================================================
+    LSFIVE-PHONE INTEGRATION
+    ============================================================
+]]
+function LSFiveTablet.IsPhoneAvailable()
+    if LSFiveTablet.PhoneResourceAvailable ~= nil then
+        return LSFiveTablet.PhoneResourceAvailable
+    end
+
+    local phoneResource = Config.PhoneIntegration and Config.PhoneIntegration.resourceName or 'lsfive-phone'
+    LSFiveTablet.PhoneResourceAvailable = GetResourceState(phoneResource) == 'started'
+
+    if LSFiveTablet.PhoneResourceAvailable then
+        LSFiveTablet.Debug('Phone integration available: ' .. phoneResource)
+    end
+
+    return LSFiveTablet.PhoneResourceAvailable
+end
+
+-- Sync data with phone resource
+function LSFiveTablet.SyncWithPhone(source, dataType, data)
+    if not Config.PhoneIntegration or not Config.PhoneIntegration.enabled then
+        return false
+    end
+
+    if not LSFiveTablet.IsPhoneAvailable() then
+        return false
+    end
+
+    local phoneResource = Config.PhoneIntegration.resourceName or 'lsfive-phone'
+
+    -- Sync based on data type
+    if dataType == 'contacts' and Config.PhoneIntegration.syncContacts then
+        TriggerEvent(phoneResource .. ':syncContacts', source, data)
+        return true
+    elseif dataType == 'messages' and Config.PhoneIntegration.syncMessages then
+        TriggerEvent(phoneResource .. ':syncMessages', source, data)
+        return true
+    elseif dataType == 'callHistory' and Config.PhoneIntegration.syncCallHistory then
+        TriggerEvent(phoneResource .. ':syncCallHistory', source, data)
+        return true
+    elseif dataType == 'notification' and Config.PhoneIntegration.crossNotifications then
+        TriggerEvent(phoneResource .. ':newNotification', source, data)
+        return true
+    end
+
+    return false
+end
+
+-- Get phone number from phone resource (if available)
+function LSFiveTablet.GetPhoneNumberFromPhone(identifier)
+    if not Config.PhoneIntegration or not Config.PhoneIntegration.sharePhoneNumber then
+        return nil
+    end
+
+    if not LSFiveTablet.IsPhoneAvailable() then
+        return nil
+    end
+
+    local phoneResource = Config.PhoneIntegration.resourceName or 'lsfive-phone'
+
+    -- Try to get phone number from phone resource
+    local success, phoneNumber = pcall(function()
+        return exports[phoneResource]:GetPlayerPhoneNumber(identifier)
+    end)
+
+    if success and phoneNumber then
+        return phoneNumber
+    end
+
+    return nil
+end
+
+--[[
+    ============================================================
+    JOB GROUP FUNCTIONS
+    ============================================================
 ]]
 function LSFiveTablet.IsJobInGroup(job, group)
     if not job or not group then return false end
@@ -75,9 +156,6 @@ function LSFiveTablet.IsJobInGroup(job, group)
     return false
 end
 
---[[
-    GET JOB GROUP
-]]
 function LSFiveTablet.GetJobGroup(job)
     if not job then return nil end
 
@@ -92,8 +170,26 @@ function LSFiveTablet.GetJobGroup(job)
     return nil
 end
 
+function LSFiveTablet.GetAllJobGroups(job)
+    if not job then return {} end
+
+    local groups = {}
+    for groupName, jobs in pairs(Config.JobGroups) do
+        for _, jobName in ipairs(jobs) do
+            if job == jobName then
+                table.insert(groups, groupName)
+                break
+            end
+        end
+    end
+
+    return groups
+end
+
 --[[
-    FORMAT PHONE NUMBER
+    ============================================================
+    PHONE NUMBER FUNCTIONS
+    ============================================================
 ]]
 function LSFiveTablet.FormatPhoneNumber(number)
     if not number then return nil end
@@ -111,9 +207,6 @@ function LSFiveTablet.FormatPhoneNumber(number)
     return number
 end
 
---[[
-    GENERATE PHONE NUMBER
-]]
 function LSFiveTablet.GeneratePhoneNumber()
     local length = Config.PhoneNumberLength or 4
     local min = 10^(length - 1)
@@ -123,8 +216,19 @@ function LSFiveTablet.GeneratePhoneNumber()
     return string.format(Config.PhoneFormat, randomPart)
 end
 
+function LSFiveTablet.IsValidPhoneNumber(number)
+    if not number or type(number) ~= 'string' then
+        return false
+    end
+
+    local cleaned = number:gsub('[^0-9]', '')
+    return #cleaned >= 4 and #cleaned <= 15
+end
+
 --[[
-    FORMAT TIMESTAMP
+    ============================================================
+    TIMESTAMP FUNCTIONS
+    ============================================================
 ]]
 function LSFiveTablet.FormatTimestamp(timestamp)
     if not timestamp then
@@ -166,8 +270,27 @@ function LSFiveTablet.FormatTimestamp(timestamp)
     end
 end
 
+function LSFiveTablet.FormatFullTimestamp(timestamp)
+    if not timestamp then
+        return os.date('%d/%m/%Y %H:%M')
+    end
+
+    if type(timestamp) == 'string' then
+        local pattern = '(%d+)-(%d+)-(%d+) (%d+):(%d+):(%d+)'
+        local year, month, day, hour, min, sec = timestamp:match(pattern)
+        if year then
+            return string.format('%s/%s/%s %s:%s', day, month, year, hour, min)
+        end
+        return timestamp
+    end
+
+    return os.date('%d/%m/%Y %H:%M', timestamp)
+end
+
 --[[
-    FORMAT CURRENCY
+    ============================================================
+    CURRENCY FUNCTIONS
+    ============================================================
 ]]
 function LSFiveTablet.FormatCurrency(amount)
     if not amount then return '$0' end
@@ -183,19 +306,37 @@ function LSFiveTablet.FormatCurrency(amount)
 end
 
 --[[
-    DEBUG PRINT
+    ============================================================
+    DEBUG & LOGGING
+    ============================================================
 ]]
 function LSFiveTablet.Debug(...)
     if Config.Debug then
-        print('[LSFive-Tablet]', ...)
+        local args = {...}
+        local message = '[LSFive-Tablet] '
+        for i, v in ipairs(args) do
+            message = message .. tostring(v) .. ' '
+        end
+        print(message)
     end
 end
 
+function LSFiveTablet.Error(...)
+    local args = {...}
+    local message = '[LSFive-Tablet] [ERROR] '
+    for i, v in ipairs(args) do
+        message = message .. tostring(v) .. ' '
+    end
+    print(message)
+end
+
 --[[
+    ============================================================
     NOTIFICATION HELPER
+    ============================================================
 ]]
-function LSFiveTablet.Notify(source, title, message, type)
-    type = type or 'info'
+function LSFiveTablet.Notify(source, title, message, notifyType)
+    notifyType = notifyType or 'info'
 
     if IsDuplicityVersion() then
         -- Server side
@@ -203,11 +344,21 @@ function LSFiveTablet.Notify(source, title, message, type)
             TriggerClientEvent('ox_lib:notify', source, {
                 title = title,
                 description = message,
-                type = type,
-                position = Config.NotificationPosition
+                type = notifyType,
+                position = Config.NotificationPosition,
+                duration = Config.NotificationDuration
             })
         else
-            TriggerClientEvent('lsfive-tablet:client:notify', source, title, message, type)
+            TriggerClientEvent('lsfive-tablet:client:notify', source, title, message, notifyType)
+        end
+
+        -- Cross-notification to phone if enabled
+        if Config.PhoneIntegration and Config.PhoneIntegration.crossNotifications then
+            LSFiveTablet.SyncWithPhone(source, 'notification', {
+                title = title,
+                message = message,
+                type = notifyType
+            })
         end
     else
         -- Client side
@@ -215,8 +366,9 @@ function LSFiveTablet.Notify(source, title, message, type)
             lib.notify({
                 title = title,
                 description = message,
-                type = type,
-                position = Config.NotificationPosition
+                type = notifyType,
+                position = Config.NotificationPosition,
+                duration = Config.NotificationDuration
             })
         else
             -- Fallback native notification
@@ -227,20 +379,34 @@ function LSFiveTablet.Notify(source, title, message, type)
     end
 end
 
+-- Play notification sound (client only)
+function LSFiveTablet.PlayNotificationSound(notifyType)
+    if IsDuplicityVersion() then return end
+
+    if not Config.NotificationSounds or not Config.NotificationSounds.enabled then
+        return
+    end
+
+    local sound = Config.NotificationSounds[notifyType] or Config.NotificationSounds.info
+    if sound then
+        PlaySoundFrontend(-1, sound.name, sound.set, true)
+    end
+end
+
 --[[
-    SAFE JSON ENCODE
+    ============================================================
+    JSON HELPERS
+    ============================================================
 ]]
 function LSFiveTablet.JsonEncode(data)
     local success, result = pcall(json.encode, data)
     if success then
         return result
     end
+    LSFiveTablet.Error('JSON encode failed:', result)
     return '{}'
 end
 
---[[
-    SAFE JSON DECODE
-]]
 function LSFiveTablet.JsonDecode(str)
     if not str or str == '' or str == 'null' then
         return nil
@@ -250,11 +416,14 @@ function LSFiveTablet.JsonDecode(str)
     if success then
         return result
     end
+    LSFiveTablet.Error('JSON decode failed:', result)
     return nil
 end
 
 --[[
+    ============================================================
     TABLE UTILITIES
+    ============================================================
 ]]
 function LSFiveTablet.TableContains(tbl, value)
     if not tbl then return false end
@@ -278,8 +447,34 @@ function LSFiveTablet.TableMerge(t1, t2)
     return t1
 end
 
+function LSFiveTablet.TableLength(tbl)
+    if not tbl then return 0 end
+
+    local count = 0
+    for _ in pairs(tbl) do
+        count = count + 1
+    end
+    return count
+end
+
+function LSFiveTablet.TableCopy(tbl)
+    if type(tbl) ~= 'table' then return tbl end
+
+    local copy = {}
+    for k, v in pairs(tbl) do
+        if type(v) == 'table' then
+            copy[k] = LSFiveTablet.TableCopy(v)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
 --[[
-    VALIDATE DATA TYPES
+    ============================================================
+    VALIDATION FUNCTIONS
+    ============================================================
 ]]
 function LSFiveTablet.ValidateString(str, maxLength)
     if type(str) ~= 'string' then return nil end
@@ -297,8 +492,24 @@ function LSFiveTablet.ValidateNumber(num, min, max)
     return num
 end
 
+function LSFiveTablet.ValidateEmail(email)
+    if not email or type(email) ~= 'string' then
+        return false
+    end
+    return email:match('^[%w._%+-]+@[%w.-]+%.[%a]+$') ~= nil
+end
+
+function LSFiveTablet.ValidateURL(url)
+    if not url or type(url) ~= 'string' then
+        return false
+    end
+    return url:match('^https?://[%w.-]+') ~= nil
+end
+
 --[[
-    SANITIZE INPUT (XSS Prevention)
+    ============================================================
+    SANITIZATION (XSS Prevention)
+    ============================================================
 ]]
 function LSFiveTablet.SanitizeInput(str)
     if type(str) ~= 'string' then return str end
@@ -310,4 +521,111 @@ function LSFiveTablet.SanitizeInput(str)
     str = str:gsub("'", '&#39;')
 
     return str
+end
+
+function LSFiveTablet.SanitizeSQL(str)
+    if type(str) ~= 'string' then return str end
+
+    -- Basic SQL injection prevention (use parameterized queries instead)
+    str = str:gsub("'", "''")
+    str = str:gsub('\\', '\\\\')
+
+    return str
+end
+
+--[[
+    ============================================================
+    IMAGE URL VALIDATION
+    ============================================================
+]]
+function LSFiveTablet.IsValidImageHost(url)
+    if not url or type(url) ~= 'string' then
+        return false
+    end
+
+    if not Config.ImageHostWhitelist then
+        return true
+    end
+
+    for _, domain in ipairs(Config.ImageHostWhitelist) do
+        if url:find(domain, 1, true) then
+            return true
+        end
+    end
+
+    return false
+end
+
+--[[
+    ============================================================
+    DISTANCE CALCULATION (Client only)
+    ============================================================
+]]
+function LSFiveTablet.GetDistance(coords1, coords2)
+    if IsDuplicityVersion() then
+        -- Server side - use simple calculation
+        local dx = coords1.x - coords2.x
+        local dy = coords1.y - coords2.y
+        local dz = (coords1.z or 0) - (coords2.z or 0)
+        return math.sqrt(dx*dx + dy*dy + dz*dz)
+    else
+        -- Client side - use native
+        return #(vector3(coords1.x, coords1.y, coords1.z) - vector3(coords2.x, coords2.y, coords2.z))
+    end
+end
+
+--[[
+    ============================================================
+    RESOURCE STATE CHECK
+    ============================================================
+]]
+function LSFiveTablet.IsResourceStarted(resourceName)
+    return GetResourceState(resourceName) == 'started'
+end
+
+--[[
+    ============================================================
+    LOCALIZATION HELPER
+    ============================================================
+]]
+LSFiveTablet.Locales = {}
+
+function LSFiveTablet.LoadLocale(lang)
+    local localeFile = LoadResourceFile(GetCurrentResourceName(), 'locales/' .. lang .. '.json')
+    if localeFile then
+        LSFiveTablet.Locales[lang] = LSFiveTablet.JsonDecode(localeFile)
+        LSFiveTablet.Debug('Loaded locale:', lang)
+        return true
+    end
+    return false
+end
+
+function LSFiveTablet.Translate(key, lang)
+    lang = lang or Config.DefaultLanguage or 'en'
+
+    if not LSFiveTablet.Locales[lang] then
+        LSFiveTablet.LoadLocale(lang)
+    end
+
+    local locale = LSFiveTablet.Locales[lang]
+    if locale and locale[key] then
+        return locale[key]
+    end
+
+    -- Fallback to English
+    if lang ~= 'en' then
+        if not LSFiveTablet.Locales['en'] then
+            LSFiveTablet.LoadLocale('en')
+        end
+        if LSFiveTablet.Locales['en'] and LSFiveTablet.Locales['en'][key] then
+            return LSFiveTablet.Locales['en'][key]
+        end
+    end
+
+    return key
+end
+
+-- Shorthand
+function _T(key, lang)
+    return LSFiveTablet.Translate(key, lang)
 end

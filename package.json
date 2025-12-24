@@ -1,22 +1,36 @@
 {
-  "name": "lsfive---krigs-tabs",
+  "name": "lsfive-tablet",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "Universal FiveM tablet - ESX/QBCore/Standalone compatible",
+  "author": "LSFive / Krigsexe",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.9.1 <23.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:watch": "vite build --watch",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "lucide-react": "^0.536.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "^0.436.0",
     "react-youtube": "^10.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@types/node": "^16.18.112",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "typescript": "~5.5.4",
+    "vite": "^4.5.5"
   }
 }
