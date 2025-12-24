@@ -2,7 +2,8 @@
 
 [![Visitors Badge](https://api.visitorbadge.io/api/VisitorHit?user=Krigsexe&repo=lsfive-tablet&countColor=%237B1E7A)](https://github.com/Krigsexe/lsfive-tablet)
 
-**[DEMO LIVE](https://lsfive-krigs-tabs-550776260716.us-west1.run.app)**
+[DEMO](https://lsfive-krigs-tabs-550776260716.us-west1.run.app)
+
 
 ## Introduction
 
