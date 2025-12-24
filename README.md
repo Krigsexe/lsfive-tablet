@@ -4,7 +4,6 @@
 
 [DEMO](https://lsfive-krigs-tabs-550776260716.us-west1.run.app)
 
-![Tablet Mockup](https://www.proxitek.fr/wp-content/uploads/2025/08/fivem-tablet.png)
 
 ## Introduction
 
